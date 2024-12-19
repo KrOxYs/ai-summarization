@@ -1,13 +1,18 @@
 // summarize.js
 const axios = require("axios");
+const express = require("express");
+require("dotenv").config();
 
-// Function to summarize text
+const app = express();
+
+app.use(express.json());
+
 async function summarizeText(text, minLength = 100, maxLength = 200) {
   if (!text) {
     console.error("Error: Text input is required.");
     return;
   }
-  const HUGGINGFACE_API_KEY = "";
+  const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY;
 
   try {
     const response = await axios.post(
@@ -28,6 +33,8 @@ async function summarizeText(text, minLength = 100, maxLength = 200) {
     console.log("Original length:", text.length);
     console.log("Summary:", response.data[0].summary_text);
     console.log("length:", response.data[0].summary_text.length);
+
+    return response.data[0].summary_text;
   } catch (error) {
     console.error(
       "Error summarizing text:",
@@ -35,12 +42,30 @@ async function summarizeText(text, minLength = 100, maxLength = 200) {
     );
   }
 }
+app.post("/summarize", async (req, res) => {
+  const { text, minLength, maxLength } = req.body;
+  // Function to summarize text
+  try {
+    const summary = await summarizeText(text, minLength, maxLength);
+    if (summary) {
+      res.json({
+        summary,
+        originalLength: text.length,
+        summaryLength: summary.length,
+      });
+    } else {
+      res.status(400).json({ error: "Error summarizing text" });
+    }
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
-// Example usage
-const inputText = `The rapid advancement of artificial intelligence (AI) has transformed industries across the globe. From healthcare to finance, AI technologies are being leveraged to optimize processes, improve decision-making, and deliver innovative solutions. One of the most notable advancements in AI is natural language processing (NLP), which enables machines to understand, interpret, and generate human language. This has led to the development of applications such as chatbots, language translation tools, and automated content generation.
+app.listen(3000, () => {
+  console.log("Server is running on port 3000");
+});
 
-For instance, in healthcare, AI-powered systems are assisting in early diagnosis by analyzing medical data and imaging. Similarly, in the automotive industry, self-driving cars are becoming a reality thanks to machine learning algorithms that can process vast amounts of sensor data in real time. However, despite these advancements, the adoption of AI also raises ethical concerns, including biases in AI models and the potential loss of jobs due to automation.
+// // Example usage
+// const inputText = `rápido progreso de la inteligencia artificial (IA) ha transformado sectores en todo el mundo. De la salud a la financiación, las tecnologías de la inteligencia artificial se utilizan para optimizar los procesos, mejorar la toma de decisiones y ofrecer soluciones innovadoras. Uno de los avances más notables de la inteligencia artificial es el procesamiento de lengua natural (PLN), que permite a las máquinas entender, interpretar y generar el lenguaje humano. Esto ha llevado al desarrollo de aplicaciones como chatbots, herramientas de traducción de lengua y generación automática de contenido. Por ejemplo, en la salud, los sistemas basados en la inteligencia artificial ayudan a realizar diagnósticos tempranos analizando datos y imágenes médicas. En la industria del automóvil, los automóviles se convierten en un algoritmo de procesamiento real.`;
 
-As industries continue to integrate AI into their operations, it is crucial to balance technological innovation with ethical considerations. Policymakers, researchers, and industry leaders must collaborate to ensure that AI systems are transparent, fair, and beneficial for all.`;
-
-summarizeText(inputText);
+// summarizeText(inputText);
